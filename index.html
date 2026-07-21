@@ -488,21 +488,26 @@
 
     async function connectToCloud() {
       try {
-        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo" };
-        const app = initializeApp(config);
+        // [버그 수정] 임시 설정이 아닌, 직접 붙여넣으신 firebaseConfig를 정확히 사용하도록 변경!
+        const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
 
         // 인증 처리
-        if (typeof __initial_auth_token !== 'undefined') {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
+        try {
           await signInAnonymously(auth);
+        } catch (error) {
+          // 채팅창 미리보기 환경을 위한 예외 처리
+          if (typeof __initial_auth_token !== 'undefined') {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            throw error; // 진짜 에러일 경우 던짐
+          }
         }
 
         if (!auth.currentUser) throw new Error("인증 실패");
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'meetup-coord-v1';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'meetup-coord-v2';
         syncDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'selections', 'shared_state');
 
         // 데이터 실시간 감지
